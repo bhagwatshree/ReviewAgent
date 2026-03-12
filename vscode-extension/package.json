@@ -1,0 +1,147 @@
+{
+  "name": "code-review-agent",
+  "displayName": "Code Review Agent",
+  "description": "AI-powered multi-dimensional code review (security, complexity, tech debt, and more) powered by Claude Opus",
+  "version": "1.0.0",
+  "publisher": "loyalty-program",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": ["Other", "Linters"],
+  "keywords": ["code review", "AI", "security", "Claude", "anthropic"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "code-review.reviewer",
+        "name": "code-review",
+        "fullName": "Code Review Agent",
+        "description": "Multi-dimensional AI code review: security, complexity, tech debt, naming, and more",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "full",
+            "description": "Run full review across all 7 dimensions"
+          },
+          {
+            "name": "security",
+            "description": "Security + vulnerability scan only"
+          },
+          {
+            "name": "quick",
+            "description": "Quick scan: security + critical blockers"
+          },
+          {
+            "name": "file",
+            "description": "Review the currently open file"
+          },
+          {
+            "name": "project",
+            "description": "Review the entire workspace project"
+          },
+          {
+            "name": "explain",
+            "description": "Explain a finding in depth"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "codeReview.reviewSelection",
+        "title": "Code Review: Review Selection",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "codeReview.reviewFile",
+        "title": "Code Review: Review Current File"
+      },
+      {
+        "command": "codeReview.reviewQuick",
+        "title": "Code Review: Quick Security Scan"
+      },
+      {
+        "command": "codeReview.reviewProject",
+        "title": "Code Review: Review Entire Project"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codeReview.reviewSelection",
+          "when": "editorHasSelection",
+          "group": "codeReview@1"
+        },
+        {
+          "command": "codeReview.reviewFile",
+          "group": "codeReview@2"
+        },
+        {
+          "command": "codeReview.reviewQuick",
+          "group": "codeReview@3"
+        },
+        {
+          "command": "codeReview.reviewProject",
+          "group": "codeReview@4"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Code Review Agent",
+      "properties": {
+        "codeReview.anthropicApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API key (or set ANTHROPIC_API_KEY environment variable)",
+          "scope": "application"
+        },
+        "codeReview.defaultDimensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "security",
+              "vulnerabilities",
+              "critical_blockers",
+              "test_coverage",
+              "tech_debt",
+              "complexity",
+              "naming_conventions"
+            ]
+          },
+          "default": [
+            "security",
+            "vulnerabilities",
+            "critical_blockers",
+            "test_coverage",
+            "tech_debt",
+            "complexity",
+            "naming_conventions"
+          ],
+          "description": "Which review dimensions to run by default"
+        },
+        "codeReview.showThinking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show Claude's thinking process in the output panel"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "dev": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "package": "npx vsce package"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.95.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}
