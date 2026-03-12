@@ -208,7 +208,7 @@ export async function reviewCode(
     const stream = client.messages.stream({
       model: "claude-opus-4-6",
       max_tokens: 3072,
-      thinking: { type: "adaptive" },
+      thinking: { type: "adaptive" } as any,
       system: meta.systemPrompt,
       messages: [
         {
