@@ -1,26 +1,18 @@
 /**
- * Review dimension definitions — system prompts for each quality axis.
- * Each dimension maps to one Claude streaming call.
+ * Review dimensions with system prompts
+ * Used by universal agent to generate review prompts
  */
 
-export type DimensionKey =
-  | "security"
-  | "vulnerabilities"
-  | "critical_blockers"
-  | "test_coverage"
-  | "tech_debt"
-  | "complexity"
-  | "naming_conventions"
-  | "business_logic";
+import type { ReviewDimension } from "./types.js";
 
-export interface Dimension {
-  name: DimensionKey;
+export interface DimensionSpec {
+  name: ReviewDimension;
   displayName: string;
   weight: number;
   systemPrompt: string;
 }
 
-export const DIMENSIONS: Record<DimensionKey, Dimension> = {
+export const DIMENSION_SPECS: Record<ReviewDimension, DimensionSpec> = {
   security: {
     name: "security",
     displayName: "Security",
@@ -201,8 +193,8 @@ When reviewing, cite specific requirements or requirement document sections. Sco
   },
 };
 
-export const ALL_DIMENSION_KEYS = Object.keys(DIMENSIONS) as DimensionKey[];
+export const ALL_DIMENSIONS = Object.keys(DIMENSION_SPECS) as ReviewDimension[];
 
-export const DEFAULT_WEIGHTS: Record<DimensionKey, number> = Object.fromEntries(
-  ALL_DIMENSION_KEYS.map((k) => [k, DIMENSIONS[k].weight])
-) as Record<DimensionKey, number>;
+export function getDimensionSpec(dimension: ReviewDimension): DimensionSpec {
+  return DIMENSION_SPECS[dimension];
+}

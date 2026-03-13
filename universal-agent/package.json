@@ -1,0 +1,29 @@
+{
+  "name": "code-review-universal-agent",
+  "version": "1.0.0",
+  "description": "IDE-agnostic code review agent that works with any IDE's built-in LLM",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "code-review-agent": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "node --test dist/test/*.test.js",
+    "cli": "node dist/cli.js"
+  },
+  "keywords": [
+    "code-review",
+    "agent",
+    "IDE-agnostic",
+    "universal",
+    "LLM"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

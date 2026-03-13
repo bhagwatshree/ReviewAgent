@@ -5,7 +5,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { readFile, readdir, stat } from "fs/promises";
-import { join, resolve, relative, extname } from "path";
+import { join, resolve, relative, extname, dirname } from "path";
 import {
   DIMENSIONS,
   DimensionKey,
@@ -45,6 +45,13 @@ export interface ReviewOptions {
   language?: string;
   filePath?: string;
   context?: string; // extra context: Jira description, feature spec, etc.
+  businessContext?: {
+    jiraPath?: string;         // Path to Jira ticket (JSON, text, or markdown)
+    brsPath?: string;          // Path to BRS document (PDF text, markdown, JSON)
+    architecturePath?: string; // Path to architecture document
+    figmaPath?: string;        // Path to Figma export (JSON or image)
+    docsRoot?: string;         // Root path to search for documents (defaults to /docs/)
+  };
   streaming?: boolean;
   onProgress?: (dimensionName: string, chunk: string) => void;
 }
@@ -112,18 +119,97 @@ function parseReviewResponse(text: string): { score: number; summary: string; fi
   }
 }
 
+/**
+ * Load document content from /docs/ folder
+ * Supports: JSON, PDF text exports, Figma exports, images
+ */
+async function loadBusinessDocument(docPath: string, projectRoot: string): Promise<string | null> {
+  if (!docPath) return null;
+
+  try {
+    const fullPath = resolve(projectRoot, docPath);
+    const fileContent = await readFile(fullPath, "utf-8");
+
+    // Detect format by file extension
+    const ext = extname(fullPath).toLowerCase();
+
+    if (ext === ".json") {
+      // Try to parse and pretty-print JSON
+      try {
+        const parsed = JSON.parse(fileContent);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return fileContent; // Return as-is if not valid JSON
+      }
+    } else if (ext === ".pdf" || ext === ".txt" || ext === ".md") {
+      return fileContent;
+    } else if ([".png", ".jpg", ".jpeg", ".gif", ".webp"].includes(ext)) {
+      return `[Image: ${relative(projectRoot, fullPath)}]\n(Note: Image content not directly readable; refer to design documents for visual specs)`;
+    } else {
+      return fileContent; // Treat as text
+    }
+  } catch (error) {
+    return null; // Document not found or unreadable
+  }
+}
+
+/**
+ * Build business context string from requirement documents
+ * Searches for documents in /docs/ folder if not explicitly provided
+ */
+async function buildBusinessContext(
+  businessContext: ReviewOptions["businessContext"],
+  projectRoot: string
+): Promise<string> {
+  if (!businessContext) return "";
+
+  const docsRoot = businessContext.docsRoot || resolve(projectRoot, "docs");
+  const contextParts: string[] = [];
+
+  // Try to load each document type
+  const docs = {
+    Jira: businessContext.jiraPath,
+    "BRS (Business Specification)": businessContext.brsPath,
+    Architecture: businessContext.architecturePath,
+    "Figma Design": businessContext.figmaPath,
+  };
+
+  for (const [label, docPath] of Object.entries(docs)) {
+    if (!docPath) continue;
+
+    // If just a filename, prepend docsRoot
+    const searchPath = docPath.startsWith("docs/") || docPath.startsWith("docs\\")
+      ? docPath
+      : join("docs", docPath);
+
+    const content = await loadBusinessDocument(searchPath, projectRoot);
+    if (content) {
+      // Truncate very large documents to avoid token bloat
+      const maxLen = 8000;
+      const truncated = content.length > maxLen ? content.substring(0, maxLen) + "\n... [truncated] ..." : content;
+      contextParts.push(`## ${label}\n${truncated}`);
+    }
+  }
+
+  return contextParts.length > 0
+    ? `\n\n**Business Requirements & Design Context:**\n\n${contextParts.join("\n\n---\n\n")}`
+    : "";
+}
+
 function buildUserMessage(
   code: string,
   language: string,
   filePath: string | undefined,
   context: string | undefined,
-  dimensionKey: DimensionKey
+  dimensionKey: DimensionKey,
+  businessContextStr?: string
 ): string {
   const dim = DIMENSIONS[dimensionKey];
   const fileRef = filePath ? `\nFile: \`${filePath}\`` : "";
   const contextBlock = context ? `\n\n**Additional Context:**\n${context}` : "";
+  const businessBlock = businessContextStr ? businessContextStr : "";
 
-  return `Review the following ${language} code for **${dim.displayName}** issues.${fileRef}${contextBlock}
+  return `Review the following ${language} code for **${dim.displayName}** issues.${fileRef}${contextBlock}${businessBlock}
 
 \`\`\`${language.toLowerCase().replace(/\s.*/, "")}
 ${code}
@@ -233,12 +319,19 @@ export async function reviewCode(
   const language = options.language ?? detectLanguage(code, options.filePath);
   const results: DimensionResult[] = [];
 
+  // Build business context if documents are provided
+  const projectRoot = resolve(options.filePath ? dirname(options.filePath) : process.cwd());
+  const businessContextStr = await buildBusinessContext(options.businessContext, projectRoot);
+
   for (const dimKey of dimensionKeys) {
     const dim = DIMENSIONS[dimKey];
     options.onProgress?.(dim.displayName, `Analyzing ${dim.displayName}...`);
 
     let fullText = "";
     let thinkingText = "";
+
+    // Include business context only for business_logic dimension
+    const contextForMessage = dimKey === "business_logic" ? businessContextStr : "";
 
     const stream = client.messages.stream({
       model: "claude-opus-4-6",
@@ -253,7 +346,8 @@ export async function reviewCode(
             language,
             options.filePath,
             options.context,
-            dimKey
+            dimKey,
+            contextForMessage
           ),
         },
       ],
