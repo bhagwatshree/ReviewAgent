@@ -1,29 +1,80 @@
 {
-  "name": "code-review-universal-agent",
+  "name": "reviewbuddy",
+  "displayName": "Review Buddy",
+  "description": "AI code review via @reviewbuddy chat — security, complexity, tech debt, and more. No API key needed.",
   "version": "1.0.0",
-  "description": "IDE-agnostic code review agent that works with any IDE's built-in LLM",
-  "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "code-review-agent": "dist/cli.js"
+  "publisher": "bhagwatshree",
+  "type": "commonjs",
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=18"
   },
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "node --test dist/test/*.test.js",
-    "cli": "node dist/cli.js"
-  },
+  "categories": [
+    "Other",
+    "Linters"
+  ],
   "keywords": [
     "code-review",
-    "agent",
-    "IDE-agnostic",
-    "universal",
+    "AI",
+    "security",
     "LLM"
   ],
-  "author": "",
-  "license": "ISC",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "bin": {
+    "code-review-agent": "dist-cli/cli.js"
+  },
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "review.buddy",
+        "name": "reviewbuddy",
+        "fullName": "Review Buddy",
+        "description": "AI code review: security, complexity, tech debt, and more. Use /project <path> to review a folder.",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "full",
+            "description": "Full review of current file or selection across all 7 dimensions"
+          },
+          {
+            "name": "file",
+            "description": "Review the currently open file"
+          },
+          {
+            "name": "security",
+            "description": "Security + vulnerability scan"
+          },
+          {
+            "name": "quick",
+            "description": "Fast scan: security + critical blockers"
+          },
+          {
+            "name": "diff",
+            "description": "Review code changes — /diff (last 2 commits), /diff v1 v2, /diff <github-url>"
+          },
+          {
+            "name": "project",
+            "description": "Review a folder — /project D:/path/to/project"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "npm run build:ext && npm run build:cli",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "build:cli": "esbuild src/cli.ts --bundle --outfile=dist-cli/cli.js --format=esm --platform=node --banner:js=\"#!/usr/bin/env node\"",
+    "dev": "npm run build:ext -- --watch",
+    "package": "npx vsce package",
+    "vscode:prepublish": "npm run build"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/vscode": "^1.110.0",
+    "esbuild": "^0.24.2",
     "typescript": "^5.0.0"
   }
 }
