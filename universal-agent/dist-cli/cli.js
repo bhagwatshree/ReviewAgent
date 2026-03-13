@@ -1,27 +1,43 @@
 #!/usr/bin/env node
-#!/usr/bin/env node
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
 };
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// src/cli.ts
+var import_promises4 = require("fs/promises");
+var import_path4 = require("path");
+
+// src/prompt-builder.ts
+var import_promises = require("fs/promises");
+var import_path = require("path");
 
 // src/dimensions.ts
-function getDimensionSpec(dimension) {
-  return DIMENSION_SPECS[dimension];
-}
-var DIMENSION_SPECS, ALL_DIMENSIONS;
-var init_dimensions = __esm({
-  "src/dimensions.ts"() {
-    "use strict";
-    DIMENSION_SPECS = {
-      security: {
-        name: "security",
-        displayName: "Security",
-        weight: 0.2,
-        systemPrompt: `You are a security-focused code reviewer specializing in application security.
+var DIMENSION_SPECS = {
+  security: {
+    name: "security",
+    displayName: "Security",
+    weight: 0.2,
+    systemPrompt: `You are a security-focused code reviewer specializing in application security.
 
 SECURITY REVIEW SCOPE:
 - Authentication stubs, bypasses, or missing auth guards
@@ -39,12 +55,12 @@ SECURITY REVIEW SCOPE:
 - Sensitive data in logs or error responses
 
 For each issue cite the CWE ID (e.g., CWE-79 for XSS). Score 10 if no security issues, 0 if critical auth bypass exists.`
-      },
-      vulnerabilities: {
-        name: "vulnerabilities",
-        displayName: "Vulnerabilities",
-        weight: 0.15,
-        systemPrompt: `You are a vulnerability researcher reviewing code for exploitable weaknesses.
+  },
+  vulnerabilities: {
+    name: "vulnerabilities",
+    displayName: "Vulnerabilities",
+    weight: 0.15,
+    systemPrompt: `You are a vulnerability researcher reviewing code for exploitable weaknesses.
 
 VULNERABILITY REVIEW SCOPE:
 - CVE-prone patterns: outdated dependency version ranges in package.json/requirements.txt
@@ -59,12 +75,12 @@ VULNERABILITY REVIEW SCOPE:
 - Race conditions in file or database operations
 
 Score 10 if no exploitable vulnerabilities, 0 if remote code execution possible.`
-      },
-      critical_blockers: {
-        name: "critical_blockers",
-        displayName: "Critical Blockers",
-        weight: 0.2,
-        systemPrompt: `You are a senior engineer reviewing code for correctness blockers that would prevent production deployment.
+  },
+  critical_blockers: {
+    name: "critical_blockers",
+    displayName: "Critical Blockers",
+    weight: 0.2,
+    systemPrompt: `You are a senior engineer reviewing code for correctness blockers that would prevent production deployment.
 
 CRITICAL BLOCKERS SCOPE:
 - Unimplemented code paths: TODO/FIXME in critical flows (auth, payment, data integrity)
@@ -79,12 +95,12 @@ CRITICAL BLOCKERS SCOPE:
 - Hardcoded limits that will break at scale (e.g., loading all rows for pagination)
 
 Score 10 if production-ready, 0 if system would crash or corrupt data on first real use.`
-      },
-      test_coverage: {
-        name: "test_coverage",
-        displayName: "Test Coverage",
-        weight: 0.15,
-        systemPrompt: `You are a testing specialist reviewing code for test adequacy and quality.
+  },
+  test_coverage: {
+    name: "test_coverage",
+    displayName: "Test Coverage",
+    weight: 0.15,
+    systemPrompt: `You are a testing specialist reviewing code for test adequacy and quality.
 
 TEST COVERAGE SCOPE:
 - Source-to-test file ratio (expect at least 1 test file per module)
@@ -98,12 +114,12 @@ TEST COVERAGE SCOPE:
 - Performance tests for endpoints under load
 
 Score 10 if comprehensive coverage including edge cases, 0 if no tests exist.`
-      },
-      tech_debt: {
-        name: "tech_debt",
-        displayName: "Tech Debt",
-        weight: 0.1,
-        systemPrompt: `You are a software architect reviewing code for maintainability and technical debt.
+  },
+  tech_debt: {
+    name: "tech_debt",
+    displayName: "Tech Debt",
+    weight: 0.1,
+    systemPrompt: `You are a software architect reviewing code for maintainability and technical debt.
 
 TECH DEBT SCOPE:
 - TODO/FIXME/HACK comments in production code
@@ -118,12 +134,12 @@ TECH DEBT SCOPE:
 - Stale dependencies with known newer alternatives
 
 Score 10 if clean and maintainable, 0 if the codebase is unmaintainable.`
-      },
-      complexity: {
-        name: "complexity",
-        displayName: "Complexity",
-        weight: 0.1,
-        systemPrompt: `You are a code quality engineer reviewing for cognitive and cyclomatic complexity.
+  },
+  complexity: {
+    name: "complexity",
+    displayName: "Complexity",
+    weight: 0.1,
+    systemPrompt: `You are a code quality engineer reviewing for cognitive and cyclomatic complexity.
 
 COMPLEXITY SCOPE:
 - Functions with cyclomatic complexity > 10 (count if/else/switch/for/while/catch/&&/||)
@@ -138,12 +154,12 @@ COMPLEXITY SCOPE:
 - Implicit ordering dependencies between functions
 
 Score 10 if all functions are simple and readable, 0 if the code requires a complexity analyzer to understand.`
-      },
-      naming_conventions: {
-        name: "naming_conventions",
-        displayName: "Naming Conventions",
-        weight: 0.1,
-        systemPrompt: `You are a code quality reviewer specializing in naming and consistency.
+  },
+  naming_conventions: {
+    name: "naming_conventions",
+    displayName: "Naming Conventions",
+    weight: 0.1,
+    systemPrompt: `You are a code quality reviewer specializing in naming and consistency.
 
 NAMING CONVENTIONS SCOPE:
 
@@ -165,12 +181,12 @@ General:
 - Abbreviations that require domain knowledge (acct, usr, pmt)
 
 Score 10 if all names are clear and consistent, 0 if the codebase requires constant mental translation.`
-      },
-      business_logic: {
-        name: "business_logic",
-        displayName: "Business Logic",
-        weight: 0.2,
-        systemPrompt: `You are a senior product engineer and business analyst reviewing code for business logic correctness.
+  },
+  business_logic: {
+    name: "business_logic",
+    displayName: "Business Logic",
+    weight: 0.2,
+    systemPrompt: `You are a senior product engineer and business analyst reviewing code for business logic correctness.
 
 BUSINESS LOGIC REVIEW SCOPE (using requirement documents provided):
 - Requirements implementation: Does the code implement all specified Jira acceptance criteria?
@@ -187,15 +203,14 @@ BUSINESS LOGIC REVIEW SCOPE (using requirement documents provided):
 - Error handling for business rules: Are violations caught and reported correctly?
 
 When reviewing, cite specific requirements or requirement document sections. Score 10 if code fully implements all business requirements, 0 if critical business logic is missing or incorrect.`
-      }
-    };
-    ALL_DIMENSIONS = Object.keys(DIMENSION_SPECS);
   }
-});
+};
+var ALL_DIMENSIONS = Object.keys(DIMENSION_SPECS);
+function getDimensionSpec(dimension) {
+  return DIMENSION_SPECS[dimension];
+}
 
 // src/prompt-builder.ts
-import { readFile } from "fs/promises";
-import { resolve, join, dirname, extname } from "path";
 function detectLanguage(code, filePath) {
   if (filePath) {
     const ext = filePath.split(".").pop()?.toLowerCase();
@@ -232,9 +247,9 @@ function detectLanguage(code, filePath) {
 async function loadDocument(docPath, projectRoot) {
   if (!docPath) return null;
   try {
-    const fullPath = resolve(projectRoot, docPath);
-    const content = await readFile(fullPath, "utf-8");
-    const ext = extname(fullPath).toLowerCase();
+    const fullPath = (0, import_path.resolve)(projectRoot, docPath);
+    const content = await (0, import_promises.readFile)(fullPath, "utf-8");
+    const ext = (0, import_path.extname)(fullPath).toLowerCase();
     if (ext === ".json") {
       try {
         const parsed = JSON.parse(content);
@@ -265,7 +280,7 @@ async function buildBusinessContext(businessContext, projectRoot) {
   };
   for (const [label, docPath] of Object.entries(docs)) {
     if (!docPath) continue;
-    const searchPath = docPath.startsWith("docs/") ? docPath : join("docs", docPath);
+    const searchPath = docPath.startsWith("docs/") ? docPath : (0, import_path.join)("docs", docPath);
     const content = await loadDocument(searchPath, projectRoot);
     if (content) {
       const maxLen = 8e3;
@@ -316,7 +331,7 @@ Return your review as a JSON block in this exact format:
 List only real findings \u2014 do not invent issues. If the code is clean for this dimension, return an empty findings array with a high score.`;
 }
 async function generateReviewPrompts(request) {
-  const projectRoot = request.filePath ? dirname(request.filePath) : process.cwd();
+  const projectRoot = request.filePath ? (0, import_path.dirname)(request.filePath) : process.cwd();
   const language = request.language || detectLanguage(request.code, request.filePath);
   const dimensions = request.dimensions || ALL_DIMENSIONS;
   const businessContextStr = await buildBusinessContext(
@@ -370,19 +385,23 @@ ${prompt.userPrompt}
 Paste the USER PROMPT into your IDE's chat, and set the context/system message to the SYSTEM PROMPT above.
 `;
 }
-var init_prompt_builder = __esm({
-  "src/prompt-builder.ts"() {
-    "use strict";
-    init_dimensions();
-  }
-});
 
 // src/html-reporter.ts
-import { readdir, readFile as readFile2 } from "fs/promises";
-import { join as join2 } from "path";
+var import_promises2 = require("fs/promises");
+var import_path2 = require("path");
+var dimensionToSeverity = {
+  "Security": "CRITICAL",
+  "Vulnerabilities": "CRITICAL",
+  "Critical Blockers": "BLOCKER",
+  "Test Coverage": "MAJOR",
+  "Tech Debt": "MAJOR",
+  "Complexity": "MINOR",
+  "Naming": "MINOR",
+  "Business Logic": "MAJOR"
+};
 async function parsePromptFile(filePath, fileName) {
   try {
-    const content = await readFile2(filePath, "utf-8");
+    const content = await (0, import_promises2.readFile)(filePath, "utf-8");
     const findings = [];
     const dimensionMatches = content.matchAll(/=== Code Review Prompt: (.+?) ===/g);
     for (const match of dimensionMatches) {
@@ -502,7 +521,7 @@ async function generateHTMLReport(projectPath, outputPath) {
     for (const file of reviewFiles) {
       const fileName = file.replace("-review-prompts.txt", "");
       const review = await parsePromptFile(
-        join2(projectPath, file),
+        (0, import_path2.join)(projectPath, file),
         fileName
       );
       fileReviews.push(review);
@@ -529,7 +548,7 @@ async function generateHTMLReport(projectPath, outputPath) {
 }
 async function findReviewFiles(projectPath) {
   try {
-    const files = await readdir(projectPath);
+    const files = await (0, import_promises2.readdir)(projectPath);
     return files.filter((f) => f.endsWith("-review-prompts.txt"));
   } catch (error) {
     return [];
@@ -944,7 +963,7 @@ function createHTML(data) {
 async function saveHTMLReport(projectPath, outputFileName = "code-review-report.html") {
   const { writeFile } = await import("fs/promises");
   const html = await generateHTMLReport(projectPath, outputFileName);
-  const outputPath = join2(projectPath, outputFileName);
+  const outputPath = (0, import_path2.join)(projectPath, outputFileName);
   await writeFile(outputPath, html, "utf-8");
   return outputPath;
 }
@@ -1108,26 +1127,11 @@ async function saveHTMLFromResult(result, outputPath, filePath) {
   await writeFile(outputPath, html, "utf-8");
   return outputPath;
 }
-var dimensionToSeverity;
-var init_html_reporter = __esm({
-  "src/html-reporter.ts"() {
-    "use strict";
-    dimensionToSeverity = {
-      "Security": "CRITICAL",
-      "Vulnerabilities": "CRITICAL",
-      "Critical Blockers": "BLOCKER",
-      "Test Coverage": "MAJOR",
-      "Tech Debt": "MAJOR",
-      "Complexity": "MINOR",
-      "Naming": "MINOR",
-      "Business Logic": "MAJOR"
-    };
-  }
-});
 
 // src/diff-fetcher.ts
-import { execFile } from "child_process";
-import { promisify } from "util";
+var import_child_process = require("child_process");
+var import_util = require("util");
+var execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
 function parseDiffArgs(text) {
   const trimmed = text.trim();
   const ghMatch = trimmed.match(
@@ -1299,15 +1303,51 @@ async function fetchDiff(args, workingDir) {
     }
   }
 }
-var execFileAsync;
-var init_diff_fetcher = __esm({
-  "src/diff-fetcher.ts"() {
-    "use strict";
-    execFileAsync = promisify(execFile);
-  }
-});
 
 // src/diff-reviewer.ts
+var DIMS = {
+  security: {
+    displayName: "Security",
+    weight: 0.2,
+    systemPrompt: "You are a security reviewer. Focus ONLY on new/changed code in the diff. Check auth bypasses, XSS, injection, secrets, CORS, IDOR. Cite CWE IDs."
+  },
+  vulnerabilities: {
+    displayName: "Vulnerabilities",
+    weight: 0.15,
+    systemPrompt: "You are a vulnerability researcher. Focus ONLY on changed code. Check prototype pollution, ReDoS, SSRF, timing attacks, mass assignment."
+  },
+  critical_blockers: {
+    displayName: "Critical Blockers",
+    weight: 0.2,
+    systemPrompt: "Focus ONLY on changed code. Check for unimplemented critical paths, crash risks, data integrity issues, missing transactions."
+  },
+  test_coverage: {
+    displayName: "Test Coverage",
+    weight: 0.15,
+    systemPrompt: "Review the diff for missing tests covering the new/changed functionality. Check if changes include corresponding test updates."
+  },
+  tech_debt: {
+    displayName: "Tech Debt",
+    weight: 0.1,
+    systemPrompt: "Review the diff for TODOs, dead code, deprecated APIs, duplication introduced in these changes."
+  },
+  complexity: {
+    displayName: "Complexity",
+    weight: 0.1,
+    systemPrompt: "Review the diff for added complexity: cyclomatic complexity >10, functions >50 lines, deep nesting, boolean trap parameters."
+  },
+  naming_conventions: {
+    displayName: "Naming",
+    weight: 0.1,
+    systemPrompt: "Review the diff for naming issues in new/changed code: wrong case, vague names, inconsistency."
+  }
+};
+var JSON_FORMAT = `Return JSON:
+\`\`\`json
+{"score":<0-10>,"summary":"<assessment>","findings":[{"severity":"<CRITICAL|HIGH|MEDIUM|LOW>","title":"<title>","description":"<desc>","file_path":"<file or null>","line":<n|null>,"suggestion":"<fix>","cwe_id":"<CWE or null>"}]}
+\`\`\`
+
+Score the quality of the CHANGED code only.`;
 function buildDiffPrompts(diff, description, dimensions) {
   const diffForReview = diff.length > 5e4 ? diff.slice(0, 5e4) + "\n\n... [diff truncated \u2014 too large] ..." : diff;
   return dimensions.filter((d) => DIMS[d]).map((dimKey) => {
@@ -1372,70 +1412,51 @@ ${"=".repeat(80)}`);
 `);
   return buildPlaceholderResult(dimensions);
 }
-var DIMS, JSON_FORMAT;
-var init_diff_reviewer = __esm({
-  "src/diff-reviewer.ts"() {
-    "use strict";
-    DIMS = {
-      security: {
-        displayName: "Security",
-        weight: 0.2,
-        systemPrompt: "You are a security reviewer. Focus ONLY on new/changed code in the diff. Check auth bypasses, XSS, injection, secrets, CORS, IDOR. Cite CWE IDs."
-      },
-      vulnerabilities: {
-        displayName: "Vulnerabilities",
-        weight: 0.15,
-        systemPrompt: "You are a vulnerability researcher. Focus ONLY on changed code. Check prototype pollution, ReDoS, SSRF, timing attacks, mass assignment."
-      },
-      critical_blockers: {
-        displayName: "Critical Blockers",
-        weight: 0.2,
-        systemPrompt: "Focus ONLY on changed code. Check for unimplemented critical paths, crash risks, data integrity issues, missing transactions."
-      },
-      test_coverage: {
-        displayName: "Test Coverage",
-        weight: 0.15,
-        systemPrompt: "Review the diff for missing tests covering the new/changed functionality. Check if changes include corresponding test updates."
-      },
-      tech_debt: {
-        displayName: "Tech Debt",
-        weight: 0.1,
-        systemPrompt: "Review the diff for TODOs, dead code, deprecated APIs, duplication introduced in these changes."
-      },
-      complexity: {
-        displayName: "Complexity",
-        weight: 0.1,
-        systemPrompt: "Review the diff for added complexity: cyclomatic complexity >10, functions >50 lines, deep nesting, boolean trap parameters."
-      },
-      naming_conventions: {
-        displayName: "Naming",
-        weight: 0.1,
-        systemPrompt: "Review the diff for naming issues in new/changed code: wrong case, vague names, inconsistency."
-      }
-    };
-    JSON_FORMAT = `Return JSON:
-\`\`\`json
-{"score":<0-10>,"summary":"<assessment>","findings":[{"severity":"<CRITICAL|HIGH|MEDIUM|LOW>","title":"<title>","description":"<desc>","file_path":"<file or null>","line":<n|null>,"suggestion":"<fix>","cwe_id":"<CWE or null>"}]}
-\`\`\`
-
-Score the quality of the CHANGED code only.`;
-  }
-});
 
 // src/project-reviewer.ts
-import { readFile as readFile3, readdir as readdir2, stat } from "fs/promises";
-import { join as join3, extname as extname2, relative } from "path";
+var import_promises3 = require("fs/promises");
+var import_path3 = require("path");
+var SKIP_DIRS = /* @__PURE__ */ new Set([
+  "node_modules",
+  ".git",
+  "__pycache__",
+  ".next",
+  "dist",
+  "build",
+  "coverage",
+  ".venv",
+  "venv",
+  ".expo",
+  "out",
+  ".turbo",
+  ".cache"
+]);
+var SOURCE_EXTS = /* @__PURE__ */ new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".py",
+  ".java",
+  ".kt",
+  ".go",
+  ".rb",
+  ".cs",
+  ".php",
+  ".swift",
+  ".rs"
+]);
 async function collectSourceFiles(root) {
   const files = [];
   async function walk(dir) {
-    const entries = await readdir2(dir).catch(() => []);
+    const entries = await (0, import_promises3.readdir)(dir).catch(() => []);
     for (const name of entries) {
       if (SKIP_DIRS.has(name) || name.startsWith(".")) continue;
-      const full = join3(dir, name);
-      const s = await stat(full).catch(() => null);
+      const full = (0, import_path3.join)(dir, name);
+      const s = await (0, import_promises3.stat)(full).catch(() => null);
       if (!s) continue;
       if (s.isDirectory()) await walk(full);
-      else if (SOURCE_EXTS.has(extname2(name).toLowerCase()) && s.size < 500 * 1024)
+      else if (SOURCE_EXTS.has((0, import_path3.extname)(name).toLowerCase()) && s.size < 500 * 1024)
         files.push(full);
     }
   }
@@ -1450,7 +1471,7 @@ async function detectStack(root, files) {
   const hasGo = files.some((f) => f.endsWith(".go"));
   const hasJava = files.some((f) => f.endsWith(".java"));
   try {
-    const pkg = JSON.parse(await readFile3(join3(root, "package.json"), "utf-8"));
+    const pkg = JSON.parse(await (0, import_promises3.readFile)((0, import_path3.join)(root, "package.json"), "utf-8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
     if (deps["react-native"] || deps["expo"]) layers.push("Mobile (React Native)");
     else if (deps["react"] || hasTsx || hasJsx) layers.push("Frontend (React)");
@@ -1463,6 +1484,47 @@ async function detectStack(root, files) {
   if (hasJava) layers.push("Backend (Java)");
   return layers.length > 0 ? layers.join(" + ") : "Mixed/Unknown";
 }
+var DIMS2 = {
+  security: {
+    displayName: "Security",
+    weight: 0.2,
+    systemPrompt: "You are a security reviewer. Check for auth bypasses, XSS, injection, secrets, CORS, IDOR. Cite CWE IDs."
+  },
+  vulnerabilities: {
+    displayName: "Vulnerabilities",
+    weight: 0.15,
+    systemPrompt: "You are a vulnerability researcher. Check for prototype pollution, ReDoS, SSRF, timing attacks, mass assignment."
+  },
+  critical_blockers: {
+    displayName: "Critical Blockers",
+    weight: 0.2,
+    systemPrompt: "Check for unimplemented critical paths, crash risks, data integrity issues, missing transactions."
+  },
+  test_coverage: {
+    displayName: "Test Coverage",
+    weight: 0.15,
+    systemPrompt: "Check for missing test files, untested critical paths, no edge cases, poor assertion quality."
+  },
+  tech_debt: {
+    displayName: "Tech Debt",
+    weight: 0.1,
+    systemPrompt: "Check for TODO/FIXMEs, dead code, deprecated APIs, copy-paste duplication, magic numbers."
+  },
+  complexity: {
+    displayName: "Complexity",
+    weight: 0.1,
+    systemPrompt: "Check for cyclomatic complexity >10, functions >50 lines, deep nesting, boolean trap parameters."
+  },
+  naming_conventions: {
+    displayName: "Naming",
+    weight: 0.1,
+    systemPrompt: "Check for wrong case conventions, vague names, inconsistency, misleading names."
+  }
+};
+var JSON_FORMAT2 = `Return JSON:
+\`\`\`json
+{"score":<0-10>,"summary":"<assessment>","findings":[{"severity":"<CRITICAL|HIGH|MEDIUM|LOW>","title":"<title>","description":"<desc>","file_path":"<path>","line":<n|null>,"suggestion":"<fix>","cwe_id":"<CWE or null>"}]}
+\`\`\``;
 async function reviewProject(projectRoot, _apiKey, dimensions, options = {}) {
   options.onProgress?.("Scanning project files...");
   const allFiles = await collectSourceFiles(projectRoot);
@@ -1475,8 +1537,8 @@ async function reviewProject(projectRoot, _apiKey, dimensions, options = {}) {
   const MAX_BUNDLE = 80 * 1024;
   for (const file of allFiles) {
     if (bundleSize >= MAX_BUNDLE) break;
-    const content = await readFile3(file, "utf-8").catch(() => "");
-    const relPath = relative(projectRoot, file);
+    const content = await (0, import_promises3.readFile)(file, "utf-8").catch(() => "");
+    const relPath = (0, import_path3.relative)(projectRoot, file);
     const entry = `
 
 // \u2500\u2500\u2500 ${relPath} \u2500\u2500\u2500
@@ -1554,136 +1616,50 @@ ${"=".repeat(80)}`);
     fileCount: allFiles.length
   };
 }
-var SKIP_DIRS, SOURCE_EXTS, DIMS2, JSON_FORMAT2;
-var init_project_reviewer = __esm({
-  "src/project-reviewer.ts"() {
-    "use strict";
-    SKIP_DIRS = /* @__PURE__ */ new Set([
-      "node_modules",
-      ".git",
-      "__pycache__",
-      ".next",
-      "dist",
-      "build",
-      "coverage",
-      ".venv",
-      "venv",
-      ".expo",
-      "out",
-      ".turbo",
-      ".cache"
-    ]);
-    SOURCE_EXTS = /* @__PURE__ */ new Set([
-      ".ts",
-      ".tsx",
-      ".js",
-      ".jsx",
-      ".py",
-      ".java",
-      ".kt",
-      ".go",
-      ".rb",
-      ".cs",
-      ".php",
-      ".swift",
-      ".rs"
-    ]);
-    DIMS2 = {
-      security: {
-        displayName: "Security",
-        weight: 0.2,
-        systemPrompt: "You are a security reviewer. Check for auth bypasses, XSS, injection, secrets, CORS, IDOR. Cite CWE IDs."
-      },
-      vulnerabilities: {
-        displayName: "Vulnerabilities",
-        weight: 0.15,
-        systemPrompt: "You are a vulnerability researcher. Check for prototype pollution, ReDoS, SSRF, timing attacks, mass assignment."
-      },
-      critical_blockers: {
-        displayName: "Critical Blockers",
-        weight: 0.2,
-        systemPrompt: "Check for unimplemented critical paths, crash risks, data integrity issues, missing transactions."
-      },
-      test_coverage: {
-        displayName: "Test Coverage",
-        weight: 0.15,
-        systemPrompt: "Check for missing test files, untested critical paths, no edge cases, poor assertion quality."
-      },
-      tech_debt: {
-        displayName: "Tech Debt",
-        weight: 0.1,
-        systemPrompt: "Check for TODO/FIXMEs, dead code, deprecated APIs, copy-paste duplication, magic numbers."
-      },
-      complexity: {
-        displayName: "Complexity",
-        weight: 0.1,
-        systemPrompt: "Check for cyclomatic complexity >10, functions >50 lines, deep nesting, boolean trap parameters."
-      },
-      naming_conventions: {
-        displayName: "Naming",
-        weight: 0.1,
-        systemPrompt: "Check for wrong case conventions, vague names, inconsistency, misleading names."
-      }
-    };
-    JSON_FORMAT2 = `Return JSON:
-\`\`\`json
-{"score":<0-10>,"summary":"<assessment>","findings":[{"severity":"<CRITICAL|HIGH|MEDIUM|LOW>","title":"<title>","description":"<desc>","file_path":"<path>","line":<n|null>,"suggestion":"<fix>","cwe_id":"<CWE or null>"}]}
-\`\`\``;
-  }
-});
 
 // src/cli.ts
-import { readFile as readFile4 } from "fs/promises";
-import { resolve as resolve2 } from "path";
-var require_cli = __commonJS({
-  "src/cli.ts"() {
-    init_prompt_builder();
-    init_html_reporter();
-    init_diff_fetcher();
-    init_diff_reviewer();
-    init_project_reviewer();
-    function parseArgs() {
-      const args = process.argv.slice(2);
-      const parsed = { helpRequested: false, hasDiff: false };
-      for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        if (arg === "--help" || arg === "-h") {
-          parsed.helpRequested = true;
-        } else if (arg === "--file" || arg === "-f") {
-          parsed.filePath = args[++i];
-        } else if (arg === "--project") {
-          parsed.projectPath = args[i + 1] && !args[i + 1].startsWith("--") ? args[++i] : process.cwd();
-        } else if (arg === "--diff") {
-          parsed.hasDiff = true;
-          const parts = [];
-          while (args[i + 1] && !args[i + 1].startsWith("--")) {
-            parts.push(args[++i]);
-          }
-          parsed.diffArg = parts.join(" ");
-        } else if (arg === "--format" || arg === "-o") {
-          parsed.format = args[++i];
-        } else if (arg === "--report") {
-          parsed.report = args[++i];
-        } else if (arg === "--result") {
-          parsed.result = args[++i];
-        } else if (arg === "--dimensions") {
-          parsed.dimensions = args[++i];
-        } else if (arg === "--api-key") {
-          i++;
-        } else if (arg === "--jira") {
-          parsed.jira = args[++i];
-        } else if (arg === "--brs") {
-          parsed.brs = args[++i];
-        } else if (arg === "--architecture") {
-          parsed.architecture = args[++i];
-        } else if (arg === "--figma") {
-          parsed.figma = args[++i];
-        }
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const parsed = { helpRequested: false, hasDiff: false };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--help" || arg === "-h") {
+      parsed.helpRequested = true;
+    } else if (arg === "--file" || arg === "-f") {
+      parsed.filePath = args[++i];
+    } else if (arg === "--project") {
+      parsed.projectPath = args[i + 1] && !args[i + 1].startsWith("--") ? args[++i] : process.cwd();
+    } else if (arg === "--diff") {
+      parsed.hasDiff = true;
+      const parts = [];
+      while (args[i + 1] && !args[i + 1].startsWith("--")) {
+        parts.push(args[++i]);
       }
-      return parsed;
+      parsed.diffArg = parts.join(" ");
+    } else if (arg === "--format" || arg === "-o") {
+      parsed.format = args[++i];
+    } else if (arg === "--report") {
+      parsed.report = args[++i];
+    } else if (arg === "--result") {
+      parsed.result = args[++i];
+    } else if (arg === "--dimensions") {
+      parsed.dimensions = args[++i];
+    } else if (arg === "--api-key") {
+      i++;
+    } else if (arg === "--jira") {
+      parsed.jira = args[++i];
+    } else if (arg === "--brs") {
+      parsed.brs = args[++i];
+    } else if (arg === "--architecture") {
+      parsed.architecture = args[++i];
+    } else if (arg === "--figma") {
+      parsed.figma = args[++i];
     }
-    function showHelp() {
-      console.log(`
+  }
+  return parsed;
+}
+function showHelp() {
+  console.log(`
 Universal Code Review Agent
 AI-powered code review using your IDE's built-in LLM \u2014 no API key required
 
@@ -1740,164 +1716,161 @@ EXAMPLES:
   # Review only security dimensions
   code-review-agent --project . --dimensions security,vulnerabilities
 `);
-    }
-    var ALL_DIMENSIONS2 = [
-      "security",
-      "vulnerabilities",
-      "critical_blockers",
-      "test_coverage",
-      "tech_debt",
-      "complexity",
-      "naming_conventions"
-    ];
-    function getDimensions(raw) {
-      if (!raw) return ALL_DIMENSIONS2;
-      return raw.split(",").map((d) => d.trim());
-    }
-    async function main() {
-      const parsed = parseArgs();
-      if (parsed.helpRequested) {
-        showHelp();
-        process.exit(0);
-      }
-      if (parsed.report) {
-        try {
-          console.error(`
+}
+var ALL_DIMENSIONS2 = [
+  "security",
+  "vulnerabilities",
+  "critical_blockers",
+  "test_coverage",
+  "tech_debt",
+  "complexity",
+  "naming_conventions"
+];
+function getDimensions(raw) {
+  if (!raw) return ALL_DIMENSIONS2;
+  return raw.split(",").map((d) => d.trim());
+}
+async function main() {
+  const parsed = parseArgs();
+  if (parsed.helpRequested) {
+    showHelp();
+    process.exit(0);
+  }
+  if (parsed.report) {
+    try {
+      console.error(`
 \u{1F4CA} Generating HTML report from: ${parsed.report}`);
-          const reportPath = await saveHTMLReport(resolve2(parsed.report));
-          console.error(`
+      const reportPath = await saveHTMLReport((0, import_path4.resolve)(parsed.report));
+      console.error(`
 \u2705 Report: ${reportPath}`);
-          process.exit(0);
-        } catch (err) {
-          console.error("\u274C Error:", err instanceof Error ? err.message : String(err));
-          process.exit(1);
-        }
-      }
-      if (parsed.hasDiff) {
-        const dimensions = getDimensions(parsed.dimensions);
-        const diffArgs = parseDiffArgs(parsed.diffArg ?? "");
-        if (diffArgs.type === "same") {
-          console.error(
-            `
+      process.exit(0);
+    } catch (err) {
+      console.error("\u274C Error:", err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  }
+  if (parsed.hasDiff) {
+    const dimensions = getDimensions(parsed.dimensions);
+    const diffArgs = parseDiffArgs(parsed.diffArg ?? "");
+    if (diffArgs.type === "same") {
+      console.error(
+        `
 \u26A0\uFE0F  Both versions are the same (${diffArgs.from}). Running project review instead...
 `
-          );
-          const root = resolve2(process.cwd());
-          await reviewProject(root, "", dimensions, {
-            onProgress: (msg) => console.error(`  \u27F3  ${msg}`)
-          });
-          process.exit(0);
-        }
-        console.error(
-          `
+      );
+      const root = (0, import_path4.resolve)(process.cwd());
+      await reviewProject(root, "", dimensions, {
+        onProgress: (msg) => console.error(`  \u27F3  ${msg}`)
+      });
+      process.exit(0);
+    }
+    console.error(
+      `
 \u{1F50D} Fetching diff: ${parsed.diffArg || "(last 2 commits)"} ...`
-        );
-        let diffResult;
-        try {
-          diffResult = await fetchDiff(diffArgs, process.cwd());
-        } catch (err) {
-          console.error("\u274C Error fetching diff:", err instanceof Error ? err.message : String(err));
-          process.exit(1);
-        }
-        if (!diffResult.diff.trim()) {
-          console.error("\n\u2705 No changes found between the specified versions.");
-          process.exit(0);
-        }
-        const diffLines = diffResult.diff.split("\n").length;
-        console.error(`
-\u{1F4C4} Diff: ${diffLines} lines \u2014 ${diffResult.description}`);
-        await reviewDiff(diffResult.diff, diffResult.description, "", dimensions, {
-          onProgress: (msg) => console.error(`  \u27F3  ${msg}`)
-        });
-        process.exit(0);
-      }
-      if (parsed.projectPath) {
-        const root = resolve2(parsed.projectPath);
-        const dimensions = getDimensions(parsed.dimensions);
-        console.error(`
-\u{1F5C2}\uFE0F  Reviewing project: ${root}`);
-        const result = await reviewProject(root, "", dimensions, {
-          onProgress: (msg) => console.error(`  \u27F3  ${msg}`)
-        }).catch((err) => {
-          console.error("\u274C Error:", err instanceof Error ? err.message : String(err));
-          process.exit(1);
-        });
-        if (parsed.format === "html") {
-          const outPath = resolve2(root, "code-review-project-report.html");
-          await saveHTMLFromResult(result, outPath, root);
-          console.error(`
-\u2705 HTML report: ${outPath}`);
-        } else if (parsed.format === "json") {
-          console.log(JSON.stringify(result, null, 2));
-        }
-        process.exit(0);
-      }
-      if (parsed.filePath) {
-        const format = parsed.format || "prompts";
-        if (format === "html") {
-          if (!parsed.result) {
-            console.error(
-              "\n\u274C --format html requires --result <path-to-review.json>\n"
-            );
-            process.exit(1);
-          }
-          const jsonText = await readFile4(resolve2(parsed.result), "utf-8");
-          const reviewData = JSON.parse(jsonText);
-          const r = {
-            dimensions: reviewData.dimensions ?? [],
-            compositeScore: reviewData.score?.composite ?? reviewData.compositeScore ?? 5,
-            grade: reviewData.score?.grade ?? reviewData.grade ?? "C"
-          };
-          const outPath = resolve2(parsed.filePath.replace(/\.[^.]+$/, "") + "-review.html");
-          await saveHTMLFromResult(r, outPath, parsed.filePath);
-          console.error(`
-\u2705 HTML report: ${outPath}`);
-          process.exit(0);
-        }
-        console.error(`
-\u{1F4C4} Reading file: ${parsed.filePath}`);
-        const code = await readFile4(resolve2(parsed.filePath), "utf-8").catch((err) => {
-          console.error("\u274C Error reading file:", err.message);
-          process.exit(1);
-        });
-        const request = {
-          code,
-          filePath: parsed.filePath,
-          businessContext: {
-            jiraPath: parsed.jira,
-            brsPath: parsed.brs,
-            architecturePath: parsed.architecture,
-            figmaPath: parsed.figma
-          }
-        };
-        console.error(`
-\u{1F504} Generating review prompts...
-`);
-        const result = await generateReviewPrompts(request);
-        console.log(`
-${"=".repeat(80)}`);
-        console.log(`Universal Code Review \u2014 Manual IDE Entry Mode`);
-        console.log(`${"=".repeat(80)}
-`);
-        for (const prompt of result.prompts) {
-          console.log(formatPromptForManualEntry(prompt));
-        }
-        console.log(`
-${"=".repeat(80)}`);
-        console.log(`NEXT STEPS:`);
-        console.log(`1. Copy each prompt into your IDE's chat`);
-        console.log(`2. Save the JSON response and run with --format html --result <file>`);
-        console.log(`${"=".repeat(80)}
-`);
-        process.exit(0);
-      }
-      showHelp();
+    );
+    let diffResult;
+    try {
+      diffResult = await fetchDiff(diffArgs, process.cwd());
+    } catch (err) {
+      console.error("\u274C Error fetching diff:", err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
-    main().catch((err) => {
-      console.error("\u274C Fatal:", err instanceof Error ? err.message : String(err));
+    if (!diffResult.diff.trim()) {
+      console.error("\n\u2705 No changes found between the specified versions.");
+      process.exit(0);
+    }
+    const diffLines = diffResult.diff.split("\n").length;
+    console.error(`
+\u{1F4C4} Diff: ${diffLines} lines \u2014 ${diffResult.description}`);
+    await reviewDiff(diffResult.diff, diffResult.description, "", dimensions, {
+      onProgress: (msg) => console.error(`  \u27F3  ${msg}`)
+    });
+    process.exit(0);
+  }
+  if (parsed.projectPath) {
+    const root = (0, import_path4.resolve)(parsed.projectPath);
+    const dimensions = getDimensions(parsed.dimensions);
+    console.error(`
+\u{1F5C2}\uFE0F  Reviewing project: ${root}`);
+    const result = await reviewProject(root, "", dimensions, {
+      onProgress: (msg) => console.error(`  \u27F3  ${msg}`)
+    }).catch((err) => {
+      console.error("\u274C Error:", err instanceof Error ? err.message : String(err));
       process.exit(1);
     });
+    if (parsed.format === "html") {
+      const outPath = (0, import_path4.resolve)(root, "code-review-project-report.html");
+      await saveHTMLFromResult(result, outPath, root);
+      console.error(`
+\u2705 HTML report: ${outPath}`);
+    } else if (parsed.format === "json") {
+      console.log(JSON.stringify(result, null, 2));
+    }
+    process.exit(0);
   }
+  if (parsed.filePath) {
+    const format = parsed.format || "prompts";
+    if (format === "html") {
+      if (!parsed.result) {
+        console.error(
+          "\n\u274C --format html requires --result <path-to-review.json>\n"
+        );
+        process.exit(1);
+      }
+      const jsonText = await (0, import_promises4.readFile)((0, import_path4.resolve)(parsed.result), "utf-8");
+      const reviewData = JSON.parse(jsonText);
+      const r = {
+        dimensions: reviewData.dimensions ?? [],
+        compositeScore: reviewData.score?.composite ?? reviewData.compositeScore ?? 5,
+        grade: reviewData.score?.grade ?? reviewData.grade ?? "C"
+      };
+      const outPath = (0, import_path4.resolve)(parsed.filePath.replace(/\.[^.]+$/, "") + "-review.html");
+      await saveHTMLFromResult(r, outPath, parsed.filePath);
+      console.error(`
+\u2705 HTML report: ${outPath}`);
+      process.exit(0);
+    }
+    console.error(`
+\u{1F4C4} Reading file: ${parsed.filePath}`);
+    const code = await (0, import_promises4.readFile)((0, import_path4.resolve)(parsed.filePath), "utf-8").catch((err) => {
+      console.error("\u274C Error reading file:", err.message);
+      process.exit(1);
+    });
+    const request = {
+      code,
+      filePath: parsed.filePath,
+      businessContext: {
+        jiraPath: parsed.jira,
+        brsPath: parsed.brs,
+        architecturePath: parsed.architecture,
+        figmaPath: parsed.figma
+      }
+    };
+    console.error(`
+\u{1F504} Generating review prompts...
+`);
+    const result = await generateReviewPrompts(request);
+    console.log(`
+${"=".repeat(80)}`);
+    console.log(`Universal Code Review \u2014 Manual IDE Entry Mode`);
+    console.log(`${"=".repeat(80)}
+`);
+    for (const prompt of result.prompts) {
+      console.log(formatPromptForManualEntry(prompt));
+    }
+    console.log(`
+${"=".repeat(80)}`);
+    console.log(`NEXT STEPS:`);
+    console.log(`1. Copy each prompt into your IDE's chat`);
+    console.log(`2. Save the JSON response and run with --format html --result <file>`);
+    console.log(`${"=".repeat(80)}
+`);
+    process.exit(0);
+  }
+  showHelp();
+  process.exit(1);
+}
+main().catch((err) => {
+  console.error("\u274C Fatal:", err instanceof Error ? err.message : String(err));
+  process.exit(1);
 });
-export default require_cli();
